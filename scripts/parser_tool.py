@@ -1,0 +1,218 @@
+import os
+import shutil
+import stat
+import time
+from typing import List, Tuple, Dict
+
+from git import Repo
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+
+BASE_VECTOR_DIR = "vector_store"
+
+VALID_EXTENSIONS = [
+    ".py", ".js", ".ts", ".java", ".go", ".cpp", ".md",
+    ".txt", ".json", ".yaml", ".yml"
+]
+
+SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules"}
+
+EMBED_MODEL = OpenAIEmbeddings(model="text-embedding-3-small")
+
+def handle_remove_readonly(func, path, exc):
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception as e:
+        print(f"Failed to delete: {path}. Error: {e}")
+
+def clone_repo(repo_url: str) -> str:
+    repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
+    target_dir = os.path.join("temp", repo_name)
+
+    # Clean old repo
+    if os.path.exists(target_dir):
+        print(f"[INFO] Removing existing repo folder: {target_dir}")
+        shutil.rmtree(target_dir, onerror=handle_remove_readonly)
+
+    print(f"[INFO] Cloning {repo_url} → {target_dir}")
+    Repo.clone_from(repo_url, target_dir)
+
+    return repo_name, target_dir
+
+def get_relevant_files(repo_path: str) -> List[str]:
+    collected = []
+
+    for root, dirs, files in os.walk(repo_path):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+
+        for file in files:
+            if any(file.endswith(ext) for ext in VALID_EXTENSIONS):
+                collected.append(os.path.join(root, file))
+
+    print(f"[INFO] Found {len(collected)} relevant files.")
+    return collected
+
+def chunk_file(file_path: str, repo_name: str) -> List[Document]:
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+    except Exception as e:
+        print(f"[WARN] Failed to read {file_path}: {e}")
+        return []
+
+    if not content.strip():
+        return []
+
+    ext = os.path.splitext(file_path)[1].lower()
+
+    separators = {
+        ".md": ["\n#", "\n##", "\n\n", "\n", " "],
+        ".py": ["\ndef ", "\nclass ", "\n\n", "\n", " "],
+        ".js": ["\nfunction ", "\nclass ", "\n\n", "\n", " "],
+        ".ts": ["\nfunction ", "\nclass ", "\n\n", "\n", " "],
+        ".java": ["\nclass ", "\n\n", "\n", " "],
+        ".go": ["\n", " "],
+    }.get(ext, ["\n\n", "\n", " "])
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=150,
+        separators=separators,
+    )
+
+    chunks = splitter.create_documents(
+        [content],
+        metadatas=[{
+            "source_file": file_path,
+            "repo_name": repo_name,
+        }]
+    )
+
+    print(f"[INFO] {file_path} → {len(chunks)} chunks")
+    return chunks
+
+def load_repo_vector_db(repo_name: str):
+    repo_vector_path = os.path.join(BASE_VECTOR_DIR, repo_name)
+
+    os.makedirs(repo_vector_path, exist_ok=True)
+
+    vectordb = Chroma(
+        collection_name=repo_name,
+        persist_directory=repo_vector_path,
+        embedding_function=EMBED_MODEL
+    )
+
+    return vectordb
+
+def store_chunks(vectordb: Chroma, chunks: List[Document], repo_name: str):
+    for i, chunk in enumerate(chunks):
+        chunk.metadata["chunk_id"] = f"{repo_name}_{i}"
+
+    vectordb.add_documents(chunks)
+    vectordb.persist()
+
+    print(f"[INFO] Stored {len(chunks)} chunks.")
+
+def process_repo(repo_url: str) -> Dict:
+    print("\n===== Starting Repo Ingestion =====\n")
+
+    repo_name, repo_path = clone_repo(repo_url)
+    files = get_relevant_files(repo_path)
+
+    all_chunks = []
+
+    for fp in files:
+        file_chunks = chunk_file(fp, repo_name)
+        all_chunks.extend(file_chunks)
+
+    if not all_chunks:
+        return {"error": "No chunks generated from repo."}
+
+    vectordb = load_repo_vector_db(repo_name)
+    store_chunks(vectordb, all_chunks, repo_name)
+
+    print("\n===== Repo Ingestion Completed Successfully =====\n")
+
+    return {
+        "repo": repo_name,
+        "file_count": len(files),
+        "chunks_count": len(all_chunks),
+        "vector_db_path": f"{BASE_VECTOR_DIR}/{repo_name}",
+    }
+
+def retrieve_similar_context(
+    repo_name: str,
+    query: str,
+    k: int = 3
+) -> List[Dict]:
+    """
+    Retrieve top-k most relevant chunks from the vector DB for a given repo.
+
+    Returns a list of:
+    {
+        "content": <chunk text>,
+        "score": <similarity score between 0 and 1>,
+        "metadata": {...}
+    }
+    """
+
+    vectordb = load_repo_vector_db(repo_name)
+
+    try:
+        # High-level API (preferred)
+        results = vectordb.similarity_search_with_score(query, k=k)
+        
+        hits = []
+        for doc, score in results:
+            
+            # Convert distance → similarity if required
+            # Many vectorstores return distance instead of similarity.
+            similarity = score
+            if similarity > 1.0:
+                similarity = 1.0 / (1.0 + score)
+
+            hits.append({
+                "content": doc.page_content,
+                "score": float(similarity),
+                "metadata": doc.metadata
+            })
+
+        combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
+        print("combined_context:", combined_context)
+        return combined_context
+
+    except Exception as e:
+        print(f"[WARN] similarity_search_with_score failed → fallback: {e}")
+
+        # Low-level API fallback
+        collection = vectordb._collection
+        raw = collection.query(
+            query_texts=[query],
+            n_results=k,
+            include=["documents", "distances", "metadatas"]
+        )
+
+        docs = raw["documents"][0]
+        dists = raw["distances"][0]
+        metas = raw["metadatas"][0]
+
+        hits = []
+        for doc, dist, meta in zip(docs, dists, metas):
+            similarity = 1.0 / (1.0 + dist)
+            hits.append({
+                "content": doc,
+                "score": float(similarity),
+                "metadata": meta
+            })
+
+        combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
+        print("combined_context:", combined_context)
+        return combined_context
+
+# hits = retrieve_similar_context("multi_agent_research_tool", "what does axriv_agent.py file doing ?")
+# print(hits)
+# for h in hits:
+#     print("Content:", h["content"], "...")   # preview
