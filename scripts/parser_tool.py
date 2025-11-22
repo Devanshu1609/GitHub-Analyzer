@@ -146,7 +146,7 @@ def process_repo(repo_url: str) -> Dict:
 def retrieve_similar_context(
     repo_name: str,
     query: str,
-    k: int = 3
+    k: int = 5
 ) -> List[Dict]:
     """
     Retrieve top-k most relevant chunks from the vector DB for a given repo.
