@@ -18,8 +18,6 @@ def summarize_repo(readme_path: str) -> Optional[str]:
         with open(readme_path, 'r', encoding='utf-8') as f:
             readme_content = f.read()
 
-        print("Generating summary using OpenAI...")
-
         model = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0,
@@ -45,7 +43,6 @@ def summarize_repo(readme_path: str) -> Optional[str]:
         """
         
         response = model.invoke(prompt)
-        print("Summary generation complete.")
         return response.content
 
     except FileNotFoundError:
