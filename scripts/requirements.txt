@@ -1,0 +1,12 @@
+fastapi
+pydantic
+dotenv
+gitpython
+langchain-text-splitters
+langchain-community
+langchain-core
+crewai
+crewai-tools
+langchain-anthropic
+langchain
+langchain-openai
