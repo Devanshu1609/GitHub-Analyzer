@@ -52,7 +52,6 @@ def get_relevant_files(repo_path: str) -> List[str]:
             if any(file.endswith(ext) for ext in VALID_EXTENSIONS):
                 collected.append(os.path.join(root, file))
 
-    print(f"[INFO] Found {len(collected)} relevant files.")
     return collected
 
 def chunk_file(file_path: str, repo_name: str) -> List[Document]:
@@ -60,7 +59,6 @@ def chunk_file(file_path: str, repo_name: str) -> List[Document]:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
     except Exception as e:
-        print(f"[WARN] Failed to read {file_path}: {e}")
         return []
 
     if not content.strip():
@@ -91,7 +89,6 @@ def chunk_file(file_path: str, repo_name: str) -> List[Document]:
         }]
     )
 
-    print(f"[INFO] {file_path} → {len(chunks)} chunks")
     return chunks
 
 def load_repo_vector_db(repo_name: str):
@@ -114,7 +111,6 @@ def store_chunks(vectordb: Chroma, chunks: List[Document], repo_name: str):
     vectordb.add_documents(chunks)
     vectordb.persist()
 
-    print(f"[INFO] Stored {len(chunks)} chunks.")
 
 def process_repo(repo_url: str) -> Dict:
     print("\n===== Starting Repo Ingestion =====\n")
@@ -167,9 +163,6 @@ def retrieve_similar_context(
         
         hits = []
         for doc, score in results:
-            
-            # Convert distance → similarity if required
-            # Many vectorstores return distance instead of similarity.
             similarity = score
             if similarity > 1.0:
                 similarity = 1.0 / (1.0 + score)
@@ -181,7 +174,6 @@ def retrieve_similar_context(
             })
 
         combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
-        print("combined_context:", combined_context)
         return combined_context
 
     except Exception as e:
@@ -209,10 +201,5 @@ def retrieve_similar_context(
             })
 
         combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
-        print("combined_context:", combined_context)
         return combined_context
 
-# hits = retrieve_similar_context("multi_agent_research_tool", "what does axriv_agent.py file doing ?")
-# print(hits)
-# for h in hits:
-#     print("Content:", h["content"], "...")   # preview
