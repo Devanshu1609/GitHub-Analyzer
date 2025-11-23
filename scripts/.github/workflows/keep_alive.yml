@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Wake up Render Service
         run: |
-          curl -s https://ai-legal-assistance-co-pilot.onrender.com/keep-alive || echo "Failed"
+          curl -s https://github-analyzer-1lbe.onrender.com/keep-alive || echo "Failed"
