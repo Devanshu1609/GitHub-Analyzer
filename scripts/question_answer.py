@@ -151,7 +151,6 @@ def process_query(query, repo_name):
     can_answer_locally = check_local_knowledge(query, retrieved_context)
     print(f"Can answer locally: {can_answer_locally}")
     
-    # # Step 2: Get context either from local DB or web
     if can_answer_locally:
         answer = generate_final_answer(retrieved_context, query)
     else:
