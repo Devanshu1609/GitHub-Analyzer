@@ -95,3 +95,7 @@ def view_file(file_path: str = Query(...)):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the GitHub Analyzer API!"}
+
+@app.get("/keep-alive")
+async def keep_alive():
+    return {"status": "active"}
