@@ -1,6 +1,6 @@
 import { FileNode, AgentResult, RepoData } from '../types/index';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://github-analyzer-1lbe.onrender.com';
 
 /**
  * Recursively converts backend file tree structure into FileNode[]

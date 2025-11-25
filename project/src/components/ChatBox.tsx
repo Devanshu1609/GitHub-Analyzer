@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Bot, User, Loader2 } from 'lucide-react';
 import { ChatMessage } from '../types';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface ChatBoxProps {
   onSendMessage: (message: string) => void;
@@ -10,15 +12,32 @@ interface ChatBoxProps {
 
 export const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, isLoading, messages }) => {
   const [input, setInput] = useState('');
-  const [repoInfo, setRepoInfo] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryHtml, setSummaryHtml] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const info = sessionStorage.getItem('repoInfo');
     console.log("Fetched repo info from sessionStorage:", info);
     const summary = info ? JSON.parse(info).summary : null;
-    setRepoInfo(summary);
+    setSummary(summary);
   }, []);
+
+  useEffect(() => {
+    if (summary) {
+      // marked.parse may return a string or a Promise, so handle both
+      const parsed = marked.parse(summary);
+      if (typeof parsed === 'string') {
+        setSummaryHtml(DOMPurify.sanitize(parsed));
+      } else if (parsed instanceof Promise) {
+        parsed.then((html: string) => {
+          setSummaryHtml(DOMPurify.sanitize(html));
+        });
+      }
+    } else {
+      setSummaryHtml('');
+    }
+  }, [summary]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,10 +69,12 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, isLoading, mess
       </div>
 
       {/* Summary Section */}
-      {repoInfo && (
+      {summaryHtml && (
         <div className="p-4 border-b border-gray-100 bg-blue-50">
           <h4 className="text-m font-semibold text-blue-700 mb-1">Repository Summary</h4>
-          <p className="text-sm text-blue-900 whitespace-pre-wrap">{repoInfo}</p>
+          <div className="prose prose-blue prose-h1:text-blue-900 prose-h2:text-blue-800 prose-h3:text-blue-700 prose-ul:list-disc prose-ul:pl-6 prose-strong:text-blue-900 max-w-none text-blue-900">
+            <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+          </div>
         </div>
       )}
 
