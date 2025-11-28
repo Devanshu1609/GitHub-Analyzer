@@ -25,7 +25,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, 
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -96,6 +96,6 @@ def view_file(file_path: str = Query(...)):
 def read_root():
     return {"message": "Welcome to the GitHub Analyzer API!"}
 
-@app.get("/keep-alive")
-async def keep_alive():
+@app.get("/ping")
+async def ping():
     return {"status": "active"}
