@@ -10,3 +10,4 @@ crewai-tools
 langchain-anthropic
 langchain
 langchain-openai
+tavily-python
