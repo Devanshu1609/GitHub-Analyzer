@@ -1,13 +1,11 @@
-// Node in the file tree
 export interface FileNode {
   name: string;
-  type: 'file' | 'directory'; // Updated 'folder' to 'directory'
+  type: 'file' | 'directory'; 
   path: string;
   children?: FileNode[];
   content?: string;
 }
 
-// AI chat message type
 export interface ChatMessage {
   id: string;
   text: string;
@@ -15,28 +13,15 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Agent-based tool output
 export interface AgentResult {
   type: 'bugFinder' | 'reviewer' | 'docgen';
   title: string;
   content: string;
   status: 'success' | 'error';
   timestamp: Date;
-  filePath: string; // ✅ Added to track which file the result is for
+  filePath: string;
 }
 
-
-// export interface AgentResult {
-//   agentType: 'bugFinder' | 'reviewer' | 'docgen';
-//   result: string;
-//   timestamp: Date;
-//   title: string;
-//   content: string;
-//   type: 'bugFinder' | 'reviewer' | 'docgen';
-// }
-
-
-// Basic repository data
 export interface RepoData {
   url: string;
   name: string;
@@ -52,7 +37,6 @@ export interface RepoData {
   chunksProcessed?: number;
 }
 
-// Extended metadata for repository info
 export interface RepositoryInfo extends RepoData {
   owner: string;
   description?: string;
