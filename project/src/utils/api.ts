@@ -27,6 +27,7 @@ const transformFileTree = (node: Record<string, any>, currentPath = ''): FileNod
  */
 export const cloneRepo = async (repoUrl: string): Promise<RepoData> => {
   try {
+    // 1. Hit your backend to clone/analyze repo
     const response = await fetch(`${API_BASE_URL}/upload-repo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,32 +42,54 @@ export const cloneRepo = async (repoUrl: string): Promise<RepoData> => {
     const data = await response.json();
     console.log(`Repository analysis completed: ${repoUrl}`);
 
+    // 2. Extract owner + repo name from URL
     const urlParts = new URL(repoUrl).pathname.split('/').filter(Boolean);
     const owner = urlParts[0];
     const repoName = urlParts[1];
 
+    // 3. Fetch GitHub metadata directly
+    const githubMeta = await fetch(`https://api.github.com/repos/${owner}/${repoName}`);
+    const meta = await githubMeta.json();
+
+    // 4. Fetch languages breakdown to determine primary language
+    const langRes = await fetch(`https://api.github.com/repos/${owner}/${repoName}/languages`);
+    const langData = await langRes.json();
+
+    // Calculate primary language
+    let primaryLanguage = '';
+    if (langData && Object.keys(langData).length > 0) {
+      const langEntries = Object.entries(langData) as [string, number][];
+      primaryLanguage = langEntries
+        .sort((a, b) => b[1] - a[1])[0][0]; // largest bytes = primary
+    }
+
+    // 5. Construct final repo info
     const repoInfo: RepoData = {
       name: repoName,
       owner,
       url: repoUrl,
       summary: data.summary || '',
-      description: data.description || '',
-      primaryLanguage: data.primaryLanguage || '',
+      description: meta.description || data.description || '',
+      primaryLanguage,
       fileTree: transformFileTree(data.file_tree),
-      starCount: data.starCount || 0,
-      forkCount: data.forkCount || 0,
-      lastUpdated: data.lastUpdated ? new Date(data.lastUpdated) : new Date()
+      starCount: meta.stargazers_count || 0,
+      forkCount: meta.forks_count || 0,
+      openIssues: meta.open_issues_count || 0,
+      lastUpdated: meta.updated_at ? new Date(meta.updated_at) : new Date()
     };
 
     console.log("Repo info:", repoInfo);
 
+    // Save to session storage
     sessionStorage.setItem('repoInfo', JSON.stringify(repoInfo));
     return repoInfo;
+
   } catch (error) {
     console.error('Error in cloneRepo:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to analyze repository');
   }
 };
+
 
 /**
  * Fetch content of a specific file

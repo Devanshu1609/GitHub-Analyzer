@@ -88,7 +88,7 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 flex flex-col" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
       <style>
       {`
         /* Hide scrollbar for Chrome, Safari and Opera */
@@ -166,20 +166,12 @@ function App() {
                 )}
               </div>
               )}
-              {/* {activeTab === 'agents' && (
-              <AgentPanel
-                onRunAgent={handleRunAgent}
-                isLoading={isLoadingAgent}
-                results={agentResults}
-                selectedFilePath={selectedFile?.path || null}
-              />
-              )} */}
             </div>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-500">
-          <div className="text-center max-w-xl mx-auto p-8">
+            <div className="text-center max-w-[70rem] mx-auto p-8">
             <Github className="h-16 w-16 mx-auto mb-6 text-gray-400" />
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Welcome to AI GitHub Assistant
@@ -188,19 +180,43 @@ function App() {
               Enter a GitHub repository URL below to start analyzing code with AI-powered tools.
             </p>
             {!repoData && <RepoInput onSubmit={handleRepoSubmit} isLoading={isLoadingRepo} />}
-            <div className="grid grid-cols-1 gap-3 text-sm pl-20 p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-left">
-                <MessageSquare className="h-4 w-4 text-blue-500" />
-                <span>Chat with your codebase using natural language</span>
-              </div>
-              <div className="flex items-center gap-2 text-left">
-                <FileText className="h-4 w-4 text-green-500" />
-                <span>Browse and examine files in detail</span>
-              </div>
-              <div className="flex items-center gap-2 text-left">
-                <Zap className="h-4 w-4 text-purple-500" />
-                <span>Run AI agents for bugs, reviews, and docs</span>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+              {[
+                {
+                  icon: MessageSquare,
+                  title: 'Intelligent Chat',
+                  description: 'Have natural conversations with your codebase using advanced AI',
+                  gradient: 'from-blue-500 to-cyan-500'
+                },
+                {
+                  icon: FileText,
+                  title: 'Code Exploration',
+                  description: 'Browse and examine files with beautiful syntax highlighting',
+                  gradient: 'from-purple-500 to-pink-500'
+                },
+                {
+                  icon: Zap,
+                  title: 'Smart Analysis',
+                  description: 'Get instant insights on bugs, performance, and best practices',
+                  gradient: 'from-orange-500 to-red-500'
+                }
+              ].map((feature) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={feature.title}
+                    className="group relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300"
+                         style={{ backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))` }}></div>
+                    <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.gradient} mb-4 shadow-lg`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -47,6 +47,7 @@ export interface RepoData {
   primaryLanguage?: string;
   starCount?: number;
   forkCount?: number;
+  openIssues?: number;
   lastUpdated?: Date;
   chunksProcessed?: number;
 }

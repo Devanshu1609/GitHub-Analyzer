@@ -63,20 +63,27 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, isLoading, mess
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-blue-600" />
-          <h3 className="text-sm font-semibold text-gray-900">Code Explainer</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Repo Assistant</h3>
         </div>
         <p className="text-xs text-gray-500 mt-1">Ask questions about the codebase</p>
       </div>
 
       {/* Summary Section */}
       {summaryHtml && (
-        <div className="p-4 border-b border-gray-100 bg-blue-50">
-          <h4 className="text-m font-semibold text-blue-700 mb-1">Repository Summary</h4>
-          <div className="prose prose-blue prose-h1:text-blue-900 prose-h2:text-blue-800 prose-h3:text-blue-700 prose-ul:list-disc prose-ul:pl-6 prose-strong:text-blue-900 max-w-none text-blue-900">
-            <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
-          </div>
-        </div>
-      )}
+  <div className="w-full flex justify-center px-6 py-4">
+    <div className="w-full max-w-5xl p-6 border border-gray-300 rounded-xl bg-white shadow-sm">
+      <h4 className="text-lg font-semibold text-blue-700 mb-4">
+        Repository Summary
+      </h4>
+
+      <div className="markdown-body text-sm">
+        <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       <div className="flex-1  p-4 space-y-4">
         {messages.length === 0 ? (
@@ -94,18 +101,33 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, isLoading, mess
                 </div>
               )}
 
-              <div className={`max-w-[80%] p-3 rounded-lg ${
-                message.sender === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-900'
-              }`}>
-                <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                <p className={`text-xs mt-1 ${
-                  message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                }`}>
+              <div
+                className={`max-w-[80%] p-3 rounded-lg ${
+                  message.sender === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                {message.sender === 'assistant' ? (
+                  <div
+                    className="markdown-body text-sm"
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(marked.parse(message.text)),
+                    }}
+                  />
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                )}
+
+                <p
+                  className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}
+                >
                   {message.timestamp.toLocaleTimeString()}
                 </p>
               </div>
+
 
               {message.sender === 'user' && (
                 <div className="flex-shrink-0">

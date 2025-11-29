@@ -61,7 +61,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, onFileSelect, selecte
                   className="shrink-0 mr-2 text-gray-500"
                 />
         )}
-        <span className="truncate font-semibold">{node.name}</span>
+        <span className="truncate font-semibold text-sm">{node.name}</span>
       </div>
 
       {node.type === 'directory' && isExpanded && node.children && (
@@ -88,10 +88,13 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
   repoData,
 }) => {
   return (
-    <div className="h-full bg-white border border-gray-200 rounded shadow-sm overflow-y-auto text-sm">
+    <div
+      className="fixed top-0 left-0 h-full w-80 flex flex-col bg-white border border-gray-200 rounded shadow-sm overflow-y-auto z-30"
+      style={{ maxHeight: '100vh' }}
+    >
       {/* Repo Info Section */}
        <div className="px-10 py-2 border-b border-gray-300 bg-gray-50">
-    <h1 className="text-lg font-bold text-gray-800">GitHub Code Assistant</h1>
+    <h1 className="text-lg font-bold text-gray-800">GitHub Repo Assistant</h1>
   </div>
       <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-1">
@@ -102,11 +105,10 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
           <p><span className="font-medium">Repo-Name:</span> {repoData.name}</p>
           <p><span className="font-medium">Owner:</span> {repoData.owner}</p>
           <p>
-            <span className="font-medium">Status:</span> ✅ Processed {repoData.chunksProcessed ?? 0} chunks
-          </p>
-          <p>
             <span className="font-medium">Language:</span> {repoData.primaryLanguage || 'Unknown'}
           </p>
+          <p><span className="font-medium">Forks:</span> {repoData.forkCount ?? 0}</p>
+          <p><span className="font-medium">Open Issues:</span> {repoData.openIssues ?? 0}</p>
         </div>
       </div>
 
