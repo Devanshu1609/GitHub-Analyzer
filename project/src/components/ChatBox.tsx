@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare, Bot, User, Loader2 } from "lucide-react";
-import { ChatMessage } from "../types";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, MessageSquare, Bot, User, Loader2 } from 'lucide-react';
+import { ChatMessage } from '../types';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface ChatBoxProps {
   onSendMessage: (message: string) => void;
@@ -10,169 +10,129 @@ interface ChatBoxProps {
   messages: ChatMessage[];
 }
 
-const parseMarkdown = async (markdown: string): Promise<string> => {
-  const result = marked.parse(markdown);
-  if (typeof result === "string") return result;
-  return await result;
-};
-
-export const ChatBox: React.FC<ChatBoxProps> = ({
-  onSendMessage,
-  isLoading,
-  messages,
-}) => {
-  const [input, setInput] = useState("");
+export const ChatBox: React.FC<ChatBoxProps> = ({ onSendMessage, isLoading, messages }) => {
+  const [input, setInput] = useState('');
   const [summary, setSummary] = useState<string | null>(null);
-  const [summaryHtml, setSummaryHtml] = useState<string>("");
-  const [parsedMessages, setParsedMessages] = useState<
-    Record<string, string>
-  >({});
-
+  const [summaryHtml, setSummaryHtml] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-
   useEffect(() => {
-    const info = sessionStorage.getItem("repoInfo");
+    const info = sessionStorage.getItem('repoInfo');
+    console.log("Fetched repo info from sessionStorage:", info);
     const summary = info ? JSON.parse(info).summary : null;
     setSummary(summary);
   }, []);
 
   useEffect(() => {
-    const parseSummary = async () => {
-      if (!summary) {
-        setSummaryHtml("");
-        return;
+    if (summary) {
+      // marked.parse may return a string or a Promise, so handle both
+      const parsed = marked.parse(summary);
+      if (typeof parsed === 'string') {
+        setSummaryHtml(DOMPurify.sanitize(parsed));
+      } else if (parsed instanceof Promise) {
+        parsed.then((html: string) => {
+          setSummaryHtml(DOMPurify.sanitize(html));
+        });
       }
-
-      const html = await parseMarkdown(summary);
-      setSummaryHtml(DOMPurify.sanitize(html));
-    };
-
-    parseSummary();
+    } else {
+      setSummaryHtml('');
+    }
   }, [summary]);
 
-  useEffect(() => {
-    const convertAllMessages = async () => {
-      const newParsed: Record<string, string> = {};
-
-      for (const m of messages) {
-        if (m.sender === "assistant") {
-          const html = await parseMarkdown(m.text);
-          newParsed[m.id] = DOMPurify.sanitize(html);
-        }
-      }
-
-      setParsedMessages(newParsed);
-    };
-
-    convertAllMessages();
-  }, [messages]);
-
-
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [messages]);
-
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
       onSendMessage(input.trim());
-      setInput("");
+      setInput('');
     }
   };
 
   return (
     <div
       className="fixed flex flex-col bg-white w-4/5"
-      style={{ height: "683px", maxHeight: "750px", overflowY: "auto" }}
+      style={{ height: '683px', maxHeight: '750px', overflowY: 'auto' }}
     >
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-blue-600" />
-          <h3 className="text-sm font-semibold text-gray-900">
-            Repo Assistant
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-900">Repo Assistant</h3>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
-          Ask questions about the codebase
-        </p>
+        <p className="text-xs text-gray-500 mt-1">Ask questions about the codebase</p>
       </div>
 
+      {/* Summary Section */}
       {summaryHtml && (
-        <div className="w-full flex justify-center px-6 py-4">
-          <div className="w-full max-w-5xl p-6 border border-gray-300 rounded-xl bg-white shadow-sm">
-            <h4 className="text-lg font-semibold text-blue-700 mb-4">
-              Repository Summary
-            </h4>
+  <div className="w-full flex justify-center px-6 py-4">
+    <div className="w-full max-w-5xl p-6 border border-gray-300 rounded-xl bg-white shadow-sm">
+      <h4 className="text-lg font-semibold text-blue-700 mb-4">
+        Repository Summary
+      </h4>
 
-            <div
-              className="markdown-body text-sm"
-              dangerouslySetInnerHTML={{ __html: summaryHtml }}
-            />
-          </div>
-        </div>
-      )}
+      <div className="markdown-body text-sm">
+        <div dangerouslySetInnerHTML={{ __html: summaryHtml }} />
+      </div>
+    </div>
+  </div>
+)}
 
-      <div className="flex-1 p-4 space-y-4">
+
+
+      <div className="flex-1  p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             <MessageSquare className="h-8 w-8 mx-auto mb-2 text-gray-400" />
             <p className="text-sm">Start a conversation about the code</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Ask questions like "What does this function do?" or "How can I
-              improve this code?"
-            </p>
+            <p className="text-xs text-gray-400 mt-1">Ask questions like "What does this function do?" or "How can I improve this code?"</p>
           </div>
         ) : (
           messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex gap-3 ${
-                message.sender === "user"
-                  ? "justify-end"
-                  : "justify-start"
-              }`}
-            >
-              {message.sender === "assistant" && (
-                <Bot className="h-6 w-6 text-blue-600 bg-blue-100 rounded-full p-1" />
+            <div key={message.id} className={`flex gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {message.sender === 'assistant' && (
+                <div className="flex-shrink-0">
+                  <Bot className="h-6 w-6 text-blue-600 bg-blue-100 rounded-full p-1" />
+                </div>
               )}
 
               <div
                 className={`max-w-[80%] p-3 rounded-lg ${
-                  message.sender === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-900"
+                  message.sender === 'user'
+                    ? 'bg-slate-700 text-white'   // User message styling
+                    : 'bg-gray-100 text-gray-900'
                 }`}
               >
-                {message.sender === "assistant" ? (
+                {message.sender === 'assistant' ? (
                   <div
                     className="markdown-body text-sm"
                     dangerouslySetInnerHTML={{
-                      __html: parsedMessages[message.id] || "",
+                      __html: DOMPurify.sanitize(marked.parse(message.text)),
                     }}
                   />
                 ) : (
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.text}
-                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                 )}
 
                 <p
                   className={`text-xs mt-1 ${
-                    message.sender === "user"
-                      ? "text-blue-100"
-                      : "text-gray-500"
+                    message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
                   }`}
                 >
                   {message.timestamp.toLocaleTimeString()}
                 </p>
               </div>
 
-              {message.sender === "user" && (
-                <User className="h-6 w-6 text-gray-600 bg-gray-200 rounded-full p-1" />
+
+              {message.sender === 'user' && (
+                <div className="flex-shrink-0">
+                  <User className="h-6 w-6 text-gray-600 bg-gray-200 rounded-full p-1" />
+                </div>
               )}
             </div>
           ))
@@ -180,7 +140,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({
 
         {isLoading && (
           <div className="flex gap-3 justify-start">
-            <Bot className="h-6 w-6 text-blue-600 bg-blue-100 rounded-full p-1" />
+            <div className="flex-shrink-0">
+              <Bot className="h-6 w-6 text-blue-600 bg-blue-100 rounded-full p-1" />
+            </div>
             <div className="bg-gray-100 text-gray-900 p-3 rounded-lg">
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />

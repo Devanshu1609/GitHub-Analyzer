@@ -61,7 +61,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, onFileSelect, selecte
                   className="shrink-0 mr-2 text-gray-500"
                 />
         )}
-        <span className="truncate font-semibold text-sm">{node.name}</span>
+        <span className="truncate font-semibold">{node.name}</span>
       </div>
 
       {node.type === 'directory' && isExpanded && node.children && (
@@ -102,13 +102,13 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
           <h2 className="font-semibold text-gray-800">Repository Info</h2>
         </div>
         <div className="text-gray-700 text-sm space-y-1 ml-6">
-          <p><span className="font-medium">Repo-Name :</span> {repoData.name}</p>
-          <p><span className="font-medium">Owner :</span> {repoData.owner}</p>
+          <p><span className="font-medium">Repo-Name:</span> {repoData.name}</p>
+          <p><span className="font-medium">Owner:</span> {repoData.owner}</p>
           <p>
-            <span className="font-medium">Language :</span> {repoData.primaryLanguage || 'Unknown'}
+            <span className="font-medium">Language:</span> {repoData.primaryLanguage || 'Unknown'}
           </p>
-          <p><span className="font-medium">Forks :</span> {repoData.forkCount ?? 0}</p>
-          <p><span className="font-medium">Open Issues :</span> {repoData.openIssues ?? 0}</p>
+          <p><span className="font-medium">Forks:</span> {repoData.forkCount ?? 0}</p>
+          <p><span className="font-medium">Open Issues:</span> {repoData.openIssues ?? 0}</p>
         </div>
       </div>
 
