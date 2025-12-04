@@ -53,7 +53,7 @@ def upload_repo(req: RepoRequest):
 
         readme_path = os.path.join(target_dir, "README.md")
         summary = summarize_repo(readme_path=readme_path)
-
+        print("Generated Summary:", summary)
         return {
             "status": "success",
             "file_tree": file_tree,
