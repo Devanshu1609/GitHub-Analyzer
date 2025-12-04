@@ -1,10 +1,10 @@
-# 🤖 GitHub Analyzer – AI-Powered Repository Companion
+# GitHub Analyzer – AI-Powered Repository Companion
 
 GitHub Analyzer is an AI-powered chatbot and codebase explorer that enables users to interact with any public GitHub repository using natural language. Simply provide a GitHub repo link, and the assistant will summarize the repository, explain code logic, answer questions, and guide you through unfamiliar codebases using LLMs and a Retrieval-Augmented Generation (RAG) pipeline.
 
 ---
 
-## 🚀 Features
+## Features
 - Summarize repository README and code structure
 - Answer technical questions about the codebase
 - Explain code logic and architecture
@@ -13,14 +13,14 @@ GitHub Analyzer is an AI-powered chatbot and codebase explorer that enables user
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS
 - **Backend:** FastAPI (Python)
 - **AI/RAG:** LangChain, OpenAI, ChromaDB, CrewAI
 
 ---
 
-## 📦 Installation & Setup
+## Installation & Setup
 
 ### 1. Backend Setup
 ```powershell
