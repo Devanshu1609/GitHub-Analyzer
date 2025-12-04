@@ -1,5 +1,6 @@
 import os
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from crewai import Agent, Task, Crew, LLM
 from crewai_tools import CodeDocsSearchTool
 from crewai_tools import TavilySearchTool
@@ -10,8 +11,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-llm = ChatOpenAI(
-    model="gpt-4.1",
+os.environ["OPENAI_API_KEY"] = "none"
+os.environ["CREWAI_DISABLE_OPENAI"] = "true"
+
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",
     temperature=0,
     max_tokens=500,
     timeout=None,
@@ -19,10 +23,11 @@ llm = ChatOpenAI(
 )
 
 crew_llm = LLM(
-    model="gpt-4.1",
+    model="groq/llama-3.3-70b-versatile", 
     max_tokens=500,
     temperature=0.7
 )
+
 
 def check_local_knowledge(query, context):
     """Function to determine if we can answer from retrieved knowledge"""
@@ -56,10 +61,8 @@ def check_local_knowledge(query, context):
 
 def setup_web_scraping_agent():
     """Setup the web scraping agent and related components"""
-    # search_tool = SerperDevTool()  # Tool for performing web searches
-    # scrape_website = ScrapeWebsiteTool()  # Tool for extracting data from websites
-    # code_docs_search = CodeDocsSearchTool(docs_url="https://stackoverflow.com")  # Tool for searching code documentation
-    tavily_search = TavilySearchTool(max_results=5)  # Tool for searching using Tavily
+    
+    tavily_search = TavilySearchTool(max_results=5)  
 
     tavily_search_agent = Agent(
         role="Tavily Search Agent",
@@ -67,25 +70,9 @@ def setup_web_scraping_agent():
         backstory="A highly specialized research agent trained to extract the most relevant information from the internet using semantic search, prioritizing accuracy and source credibility.",
         allow_delegation=False,
         verbose=True,
-        llm=crew_llm
+        llm=crew_llm,
     )
 
-    # code_doc_search_agent = Agent(
-    #     role="Expert Code Documentation Search Agent",
-    #     goal=(
-    #         "Retrieve the most accurate, official, and relevant documentation for the user's programming "
-    #         "questions. Provide API references, usage examples, and detailed explanations from reliable "
-    #         "documentation sources."
-    #     ),
-    #     backstory=(
-    #         "A highly trained technical documentation expert capable of scanning language docs, framework "
-    #         "docs, function references, and API specifications to extract precise programming knowledge."
-    #     ),
-    #     allow_delegation=False,
-    #     verbose=True,
-    #     llm=crew_llm,
-    #     tools=[code_docs_search]
-    # )
 
     tavily_search_task =Task(
         description=(
@@ -100,23 +87,7 @@ def setup_web_scraping_agent():
         tools=[tavily_search],
         agent=tavily_search_agent,
     )
-
-    # code_docs_search_task = Task(
-    #     description=(
-    #         "Using CodeDocSearchTool, find the most accurate and official documentation related to '{query}'. "
-    #         "Focus on providing API usage, parameters, return values, and examples. If multiple sources exist, "
-    #         "choose the most authoritative one."
-    #     ),
-    #     expected_output=(
-    #         "A clear, detailed summary of the official documentation related to '{query}', including examples, "
-    #         "parameters, and explanations."
-    #     ),
-    #     tools=[code_docs_search],
-    #     agent=code_doc_search_agent(),
-    # )
-
     
-    # Define the crew to manage agents and tasks
     crew = Crew(
         agents=[tavily_search_agent],
         tasks=[tavily_search_task],
