@@ -1,13 +1,16 @@
 import os
 import logging
 from typing import Optional
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
+from dotenv import load_dotenv
+from langchain.chat_models import init_chat_model
+
+load_dotenv()
 
 
 def summarize_repo(readme_path: str) -> Optional[str]:
     """
-    Summarizes a repository based on its README file using OpenAI's GPT model.
+    Summarizes a repository based on its README file using Gemini API.
     Returns the summary string or None if an error occurs.
     """
     if not os.path.exists(readme_path):
@@ -18,37 +21,38 @@ def summarize_repo(readme_path: str) -> Optional[str]:
         with open(readme_path, 'r', encoding='utf-8') as f:
             readme_content = f.read()
 
-        model = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0,
-            max_tokens=500,
-            timeout=None,
-            max_retries=2,
-        )
-        prompt = f"""Analyze this GitHub repository's README file and provide insights about the project.
+        # Updated model name + correct usage
+        # model = ChatGoogleGenerativeAI(
+        #     model="gemini-flash-latest",   # NEW recommended model
+        #     temperature=0,
+        #     max_output_tokens=500,
+        #     api_key=os.getenv("GOOGLE_API_KEY"),
+        # )
 
-            README Content:
-            {readme_content}
+        model = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
-            Conduct a comprehensive and detailed analysis that answers:
-            - What does this project do and what problem does it solve?
-            - What are its key features and capabilities?
-            - What technologies, languages, and frameworks does it use?
-            - How do you install and use it?
-            - Who is the target audience?
-            - What are the main dependencies and requirements?
-            - Are there any notable aspects, limitations, or unique characteristics?
+        prompt = f"""
+        Analyze this GitHub repository's README file and provide insights about the project.
 
-            Format your response in a clear, structured way that would help someone quickly understand this repository and decide if it's relevant to their needs.
+        README Content:
+        {readme_content}
+
+        Conduct a comprehensive and detailed analysis that answers:
+        - What does this project do and what problem does it solve?
+        - What are its key features and capabilities?
+        - What technologies, languages, and frameworks does it use?
+        - How do you install and use it?
+        - Who is the target audience?
+        - What are the main dependencies and requirements?
+        - Are there any notable aspects, limitations, or unique characteristics?
+
+        Format your response in a clear, structured, professional way that would help someone
+        quickly understand this repository and decide if it's relevant to their needs.
         """
-        
+
         response = model.invoke(prompt)
         return response.content
 
-    except FileNotFoundError:
-        print("README file not found.")
     except Exception as e:
         print(f"Error during summary generation: {e}")
-    return None
-
-
+        return None
