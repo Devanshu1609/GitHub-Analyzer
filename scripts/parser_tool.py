@@ -5,9 +5,9 @@ import time
 from typing import List, Tuple, Dict
 
 from git import Repo
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_vertexai import VertexAIEmbeddings
 from langchain_core.documents import Document
 
 BASE_VECTOR_DIR = "vector_store"
@@ -19,7 +19,11 @@ VALID_EXTENSIONS = [
 
 SKIP_DIRS = {".git", "__pycache__", "venv", ".venv", "node_modules"}
 
-EMBED_MODEL = OpenAIEmbeddings(model="text-embedding-3-small")
+# ----------------------------
+# ⭐ VERTEX AI EMBEDDINGS (768-d)
+# ----------------------------
+EMBED_MODEL = VertexAIEmbeddings(model_name="text-embedding-004")
+
 
 def handle_remove_readonly(func, path, exc):
     try:
@@ -28,11 +32,11 @@ def handle_remove_readonly(func, path, exc):
     except Exception as e:
         print(f"Failed to delete: {path}. Error: {e}")
 
+
 def clone_repo(repo_url: str) -> str:
     repo_name = repo_url.rstrip("/").split("/")[-1].replace(".git", "")
     target_dir = os.path.join("temp", repo_name)
 
-    # Clean old repo
     if os.path.exists(target_dir):
         print(f"[INFO] Removing existing repo folder: {target_dir}")
         shutil.rmtree(target_dir, onerror=handle_remove_readonly)
@@ -41,6 +45,7 @@ def clone_repo(repo_url: str) -> str:
     Repo.clone_from(repo_url, target_dir)
 
     return repo_name, target_dir
+
 
 def get_relevant_files(repo_path: str) -> List[str]:
     collected = []
@@ -54,31 +59,24 @@ def get_relevant_files(repo_path: str) -> List[str]:
 
     return collected
 
+
+# ===============================================================
+# 🔥 FINAL FIX: Safe Chunking using CharacterTextSplitter
+# ===============================================================
 def chunk_file(file_path: str, repo_name: str) -> List[Document]:
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
-    except Exception as e:
+    except Exception:
         return []
 
     if not content.strip():
         return []
 
-    ext = os.path.splitext(file_path)[1].lower()
-
-    separators = {
-        ".md": ["\n#", "\n##", "\n\n", "\n", " "],
-        ".py": ["\ndef ", "\nclass ", "\n\n", "\n", " "],
-        ".js": ["\nfunction ", "\nclass ", "\n\n", "\n", " "],
-        ".ts": ["\nfunction ", "\nclass ", "\n\n", "\n", " "],
-        ".java": ["\nclass ", "\n\n", "\n", " "],
-        ".go": ["\n", " "],
-    }.get(ext, ["\n\n", "\n", " "])
-
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150,
-        separators=separators,
+    # ⭐ HARD SPLIT — NO CHUNK > 2000 characters ⭐
+    splitter = CharacterTextSplitter(
+        chunk_size=2000,
+        chunk_overlap=200,
     )
 
     chunks = splitter.create_documents(
@@ -91,9 +89,9 @@ def chunk_file(file_path: str, repo_name: str) -> List[Document]:
 
     return chunks
 
+
 def load_repo_vector_db(repo_name: str):
     repo_vector_path = os.path.join(BASE_VECTOR_DIR, repo_name)
-
     os.makedirs(repo_vector_path, exist_ok=True)
 
     vectordb = Chroma(
@@ -103,6 +101,7 @@ def load_repo_vector_db(repo_name: str):
     )
 
     return vectordb
+
 
 def store_chunks(vectordb: Chroma, chunks: List[Document], repo_name: str):
     for i, chunk in enumerate(chunks):
@@ -139,28 +138,18 @@ def process_repo(repo_url: str) -> Dict:
         "vector_db_path": f"{BASE_VECTOR_DIR}/{repo_name}",
     }
 
+
 def retrieve_similar_context(
     repo_name: str,
     query: str,
     k: int = 5
 ) -> List[Dict]:
-    """
-    Retrieve top-k most relevant chunks from the vector DB for a given repo.
-
-    Returns a list of:
-    {
-        "content": <chunk text>,
-        "score": <similarity score between 0 and 1>,
-        "metadata": {...}
-    }
-    """
 
     vectordb = load_repo_vector_db(repo_name)
 
     try:
-        # High-level API (preferred)
         results = vectordb.similarity_search_with_score(query, k=k)
-        
+
         hits = []
         for doc, score in results:
             similarity = score
@@ -173,13 +162,14 @@ def retrieve_similar_context(
                 "metadata": doc.metadata
             })
 
-        combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
+        combined_context = "\n\n".join(
+            [f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits]
+        )
         return combined_context
 
     except Exception as e:
         print(f"[WARN] similarity_search_with_score failed → fallback: {e}")
 
-        # Low-level API fallback
         collection = vectordb._collection
         raw = collection.query(
             query_texts=[query],
@@ -200,6 +190,7 @@ def retrieve_similar_context(
                 "metadata": meta
             })
 
-        combined_context = "\n\n".join([f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits])
+        combined_context = "\n\n".join(
+            [f"Metadata: {hit['metadata']['source_file']}\n{hit['content']}" for hit in hits]
+        )
         return combined_context
-
