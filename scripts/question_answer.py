@@ -1,11 +1,7 @@
 import os
-from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from crewai import Agent, Task, Crew, LLM
-from crewai_tools import CodeDocsSearchTool
 from crewai_tools import TavilySearchTool
-from crewai_tools import SerperDevTool
-from crewai_tools import ScrapeWebsiteTool
 from parser_tool import retrieve_similar_context
 from dotenv import load_dotenv
 
