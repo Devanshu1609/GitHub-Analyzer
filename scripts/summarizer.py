@@ -21,14 +21,6 @@ def summarize_repo(readme_path: str) -> Optional[str]:
         with open(readme_path, 'r', encoding='utf-8') as f:
             readme_content = f.read()
 
-        # Updated model name + correct usage
-        # model = ChatGoogleGenerativeAI(
-        #     model="gemini-flash-latest",   # NEW recommended model
-        #     temperature=0,
-        #     max_output_tokens=500,
-        #     api_key=os.getenv("GOOGLE_API_KEY"),
-        # )
-
         model = init_chat_model("google_genai:gemini-2.5-flash-lite")
 
         prompt = f"""
