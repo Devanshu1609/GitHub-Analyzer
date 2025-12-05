@@ -13,3 +13,4 @@ langchain-openai
 tavily-python
 langchain_google_vertexai
 litellm
+langchain_groq
